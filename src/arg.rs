@@ -1,4 +1,6 @@
-use clap::{Command, arg};
+use clap::{Command};
+
+use crate::ui::commit::commit_app;
 
 fn cli() -> Command {
     Command::new("GitAuto")
@@ -8,17 +10,15 @@ fn cli() -> Command {
         .subcommand(
             Command::new("commit")
                 .about("Commits a code")
-                .arg(arg!(<COMMIT> "The commit msg"))
-                .arg_required_else_help(true)
         )
 }
 
-pub fn cli_handle() {
+pub fn cli_handle() -> color_eyre::Result<()> {
     let matches = cli().get_matches();
 
     match matches.subcommand() {
-        Some(("commit", sub_matches)) => {
-            println!("Commiting {}", sub_matches.get_one::<String>("COMMIT").expect("required"))
+        Some(("commit", _)) => {
+            commit_app()
         },
         _ => unreachable!()
     }
