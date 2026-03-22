@@ -6,9 +6,9 @@ pub struct TabHandler {
 }
 
 impl TabHandler {
-    pub const fn new(titles: Vec<String>) -> Self {
+    pub fn new<S: Into<String>>(titles: Vec<S>) -> Self {
         Self {
-            titles,
+            titles: titles.into_iter().map(|s| s.into()).collect(),
             tab_index: 0
         }
     }
@@ -23,7 +23,7 @@ impl TabHandler {
                 KeyCode::Right => {
                     self.tab_index += 1;
                     self.tab_index = self.tab_index.clamp(0, self.titles.len() - 1)
-                }
+                },
                 _ => {}
             }
         }
