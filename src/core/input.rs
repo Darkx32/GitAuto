@@ -1,4 +1,4 @@
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind};
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
 pub struct InputHandler{
     pub text: String,
@@ -15,12 +15,12 @@ impl InputHandler {
 
     pub fn event_handle(&mut self, key: KeyEvent) {
         if key.kind == KeyEventKind::Press {
-            match key.code {
-                KeyCode::Enter => self.submit_message(),
-                KeyCode::Char(to_insert) => self.enter_char(to_insert),
-                KeyCode::Backspace => self.delete_char(),
-                KeyCode::Left => self.move_cursor_left(),
-                KeyCode::Right => self.move_cursor_right(),
+            match (key.code, key.modifiers) {
+                (KeyCode::Enter, KeyModifiers::NONE) => self.submit_message(),
+                (KeyCode::Char(to_insert), KeyModifiers::NONE) => self.enter_char(to_insert),
+                (KeyCode::Backspace, KeyModifiers::NONE) => self.delete_char(),
+                (KeyCode::Left, KeyModifiers::NONE) => self.move_cursor_left(),
+                (KeyCode::Right, KeyModifiers::NONE) => self.move_cursor_right(),
                 _ => {}
             }
         }

@@ -1,23 +1,16 @@
 use std::time::Duration;
 
 use color_eyre::eyre::Context;
-use ratatui::{DefaultTerminal, Frame, crossterm::event::{self, Event, KeyCode, KeyEventKind}, layout::{Constraint, Layout}, style::{Color, Style}, widgets::{Block, Paragraph, Tabs}};
+use ratatui::{DefaultTerminal, Frame, crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers}, layout::{Constraint, Layout, Position}, style::{Color, Style}, widgets::{Block, Paragraph, Tabs}};
 
-use crate::core::{input::InputHandler, tab::TabHandler};
+use crate::core::{git::git_controller, input::InputHandler, tab::TabHandler};
 
 struct CommitHandler {
     msg: InputHandler,
     tabs: TabHandler,
-    commit_type: CommitType,
     is_running: bool,
+    is_finishing: bool,
     focus: Focus
-}
-
-pub enum CommitType {
-    Feature,
-    Docs,
-    Fix,
-    Improvement
 }
 
 enum Focus {
@@ -26,23 +19,18 @@ enum Focus {
 }
 
 pub fn commit_app() -> color_eyre::Result<()> {
-    let mut commit_handler = CommitHandler::new(CommitType::Improvement);
+    let mut commit_handler = CommitHandler::new();
 
     ratatui::run(|terminal| commit_handler.run(terminal)).context("Error to run commit app")
 }
 
 impl CommitHandler {
-    fn new(commit_type: CommitType) -> Self {
-        let tabs_titles = vec!["feat", "docs", "fix", "improvement"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
-
+    fn new() -> Self {
         Self {
             msg: InputHandler::new(),
-            tabs: TabHandler::new(tabs_titles),
-            commit_type,
+            tabs: TabHandler::new::<&str>(["feat", "docs", "fix", "improvement"].to_vec()),
             is_running: true,
+            is_finishing: false,
             focus: Focus::MsgInput
         }
     }
@@ -53,9 +41,16 @@ impl CommitHandler {
                 break;
             }
 
-            terminal.draw(|frame| self.render(frame))?;
+            terminal.draw(|frame| { 
+                if self.is_finishing {
+                    self.finish(frame)
+                        .expect("Error on commit");
+                } else {
+                    self.render(frame);
+                }
+            })?;
 
-            self.handle_events()?
+            self.handle_events()?;
         }
         Ok(())
     }
@@ -71,18 +66,27 @@ impl CommitHandler {
 
         let [area1, area2] = frame.area().layout(&layout);
 
-        let input1 = Paragraph::new(self.msg.text.as_str())
-            .block(Block::bordered().title("Input"))
+        let input_msg = Paragraph::new(self.msg.text.as_str())
+            .block(Block::bordered().title("Message"))
             .style(Style::default().fg(input_color));
 
-        frame.render_widget(input1, area1);
+        frame.render_widget(input_msg, area1);
 
         let tab = Tabs::new(self.tabs.titles.clone())
-            .block(Block::default().title("Commit Type"))
+            .block(Block::default().title("Type"))
             .style(Style::default().fg(tab_color))
             .select(self.tabs.tab_index);
 
         frame.render_widget(tab, area2);
+
+        if matches!(self.focus, Focus::MsgInput) {
+            frame.set_cursor_position(
+                Position::new(
+                    area1.x + self.msg.text.len() as u16 + 1,
+                    area1.y + 1
+                )
+            );
+        }
     }
 
     fn handle_events(&mut self) -> color_eyre::Result<()> {
@@ -90,18 +94,15 @@ impl CommitHandler {
             let event = event::read()
                 .context("event read failed")?;
             
-            if let Event::Key(key_event) = event {
-                if key_event.kind == KeyEventKind::Press {
-                    if key_event.code == KeyCode::Esc {
-                        self.is_running = false
-                    }
-
-                    if key_event.code == KeyCode::Tab {
-                        match self.focus {
+            if let Event::Key(key_event) = event && key_event.kind == KeyEventKind::Press {
+                match (key_event.code, key_event.modifiers) {
+                    (KeyCode::Esc, KeyModifiers::NONE) => self.is_running = false,
+                    (KeyCode::Tab, KeyModifiers::NONE) => match self.focus {
                             Focus::CommitType => self.focus = Focus::MsgInput,
                             Focus::MsgInput => self.focus = Focus::CommitType
-                        }
-                    }
+                        },
+                    (KeyCode::Char('x'), KeyModifiers::CONTROL) => self.is_finishing = true,
+                    _ => {}
                 }
 
                 match self.focus {
@@ -110,6 +111,19 @@ impl CommitHandler {
                 }
             }
         }
+        Ok(())
+    }
+
+    fn finish(&mut self, frame: &mut Frame) -> color_eyre::Result<()> {
+        let commit_type = self.tabs.titles[self.tabs.tab_index].clone();
+        let commit_msg = format!("{}: {}", commit_type, self.msg.text);
+
+        let text = Paragraph::new(commit_msg.as_str())
+            .block(Block::bordered());
+
+        frame.render_widget(text, frame.area());
+
+        // git_controller::commit(commit_msg, None)?;
         Ok(())
     }
 }
