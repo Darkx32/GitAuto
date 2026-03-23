@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use color_eyre::eyre::Context;
-use ratatui::{DefaultTerminal, Frame, crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers}, layout::{Constraint, Layout, Position}, style::{Color, Style}, widgets::{Block, Paragraph, Tabs}};
+use ratatui::{DefaultTerminal, Frame, crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers}, layout::{Constraint, Layout, Position}, style::{Color, Style, Stylize}, text::{Line, Text}, widgets::{Block, Paragraph, Tabs}};
 
 use crate::core::{git::git_controller, input::InputHandler, tab::TabHandler};
 
@@ -60,30 +60,46 @@ impl CommitHandler {
         let tab_color = if matches!(self.focus, Focus::CommitType) { Color::Yellow } else { Color::White };
 
         let layout =  Layout::vertical([
+            Constraint::Length(1),
             Constraint::Percentage(50),
             Constraint::Percentage(50)
         ]);
 
-        let [area1, area2] = frame.area().layout(&layout);
+        let [help_area, input_area, tab_area] = frame.area().layout(&layout);
+
+
+        let text_help = Text::from(
+            Line::from(vec![
+                "Press ".into(),
+                "Esc ".bold(),
+                "to cancel, ".into(),
+                "Tab ".bold(),
+                "to change widget and ".into(),
+                "Ctrl + X ".bold(),
+                "to send commit".into()
+            ])
+        ).patch_style(Style::default().fg(Color::Cyan));
+        let help_message = Paragraph::new(text_help);
+        frame.render_widget(help_message, help_area);
 
         let input_msg = Paragraph::new(self.msg.text.as_str())
             .block(Block::bordered().title("Message"))
             .style(Style::default().fg(input_color));
 
-        frame.render_widget(input_msg, area1);
+        frame.render_widget(input_msg, input_area);
 
         let tab = Tabs::new(self.tabs.titles.clone())
             .block(Block::default().title("Type"))
             .style(Style::default().fg(tab_color))
             .select(self.tabs.tab_index);
 
-        frame.render_widget(tab, area2);
+        frame.render_widget(tab, tab_area);
 
         if matches!(self.focus, Focus::MsgInput) {
             frame.set_cursor_position(
                 Position::new(
-                    area1.x + self.msg.text.len() as u16 + 1,
-                    area1.y + 1
+                    input_area.x + self.msg.text.len() as u16 + 1,
+                    input_area.y + 1
                 )
             );
         }
@@ -118,12 +134,15 @@ impl CommitHandler {
         let commit_type = self.tabs.titles[self.tabs.tab_index].clone();
         let commit_msg = format!("{}: {}", commit_type, self.msg.text);
 
-        let text = Paragraph::new(commit_msg.as_str())
-            .block(Block::bordered());
+        let (text, style) = git_controller::commit(commit_msg, None)?;
 
-        frame.render_widget(text, frame.area());
+        let final_text = Paragraph::new(text)
+            .block(Block::bordered())
+            .style(style);
 
-        // git_controller::commit(commit_msg, None)?;
+        frame.render_widget(final_text, frame.area());
+
+        
         Ok(())
     }
 }

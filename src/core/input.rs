@@ -1,5 +1,7 @@
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
+use crate::core::core_helper;
+
 pub struct InputHandler{
     pub text: String,
     character_index: usize
@@ -17,7 +19,7 @@ impl InputHandler {
         if key.kind == KeyEventKind::Press {
             match (key.code, key.modifiers) {
                 (KeyCode::Enter, KeyModifiers::NONE) => self.submit_message(),
-                (KeyCode::Char(to_insert), KeyModifiers::NONE) => self.enter_char(to_insert),
+                (KeyCode::Char(to_insert), KeyModifiers::NONE|KeyModifiers::SHIFT) => self.enter_char(to_insert),
                 (KeyCode::Backspace, KeyModifiers::NONE) => self.delete_char(),
                 (KeyCode::Left, KeyModifiers::NONE) => self.move_cursor_left(),
                 (KeyCode::Right, KeyModifiers::NONE) => self.move_cursor_right(),
@@ -38,8 +40,12 @@ impl InputHandler {
 
     fn enter_char(&mut self, new_char: char) {
         let index = self.byte_index();
-        self.text.insert(index, new_char);
-        self.move_cursor_right();
+        let is_accent = core_helper::is_accented(new_char);
+
+        if !is_accent {
+            self.text.insert(index, new_char);
+            self.move_cursor_right();
+        }
     }
 
     fn byte_index(&self) -> usize {
