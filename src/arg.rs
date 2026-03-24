@@ -1,6 +1,6 @@
 use clap::{Command};
 
-use crate::ui::commit::commit_app;
+use crate::ui::commit;
 
 fn cli() -> Command {
     Command::new("GitAuto")
@@ -18,7 +18,7 @@ pub fn cli_handle() -> color_eyre::Result<()> {
 
     match matches.subcommand() {
         Some(("commit", _)) => {
-            commit_app()
+            commit::render()
         },
         _ => unreachable!()
     }
