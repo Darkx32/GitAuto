@@ -8,4 +8,3 @@ clap = "4.6.0"
 color-eyre = "0.6.5"
 git2 = { version = "0.20.4", features = ["ssh", "https"] }
 inquire = "0.9.4"
-unicode-general-category = "1.1.0"
