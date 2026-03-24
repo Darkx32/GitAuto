@@ -3,6 +3,17 @@
 version = 4
 
 [[package]]
+name = "GitAuto"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "git2",
+ "inquire",
+ "owo-colors",
+]
+
+[[package]]
 name = "addr2line"
 version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -325,16 +336,6 @@ dependencies = [
  "openssl-probe",
  "openssl-sys",
  "url",
-]
-
-[[package]]
-name = "git_auto"
-version = "0.1.0"
-dependencies = [
- "clap",
- "color-eyre",
- "git2",
- "inquire",
 ]
 
 [[package]]
