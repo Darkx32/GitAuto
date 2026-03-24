@@ -1,5 +1,5 @@
 [package]
-name = "git_auto"
+name = "GitAuto"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,3 +8,4 @@ clap = "4.6.0"
 color-eyre = "0.6.5"
 git2 = { version = "0.20.4", features = ["ssh", "https"] }
 inquire = "0.9.4"
+owo-colors = "4.3.0"
