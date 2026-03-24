@@ -2,14 +2,12 @@ use std::path::Path;
 
 use color_eyre::eyre::Context;
 use git2::Repository;
-use ratatui::style::{Color, Style};
 
 use crate::core::git::git_helper;
 
-pub fn commit(msg: String, add_all: Option<bool>) -> color_eyre::Result<(String, Style)> {
+pub fn commit(msg: String, add_all: Option<bool>) -> color_eyre::Result<String> {
     let repo = Repository::open(Path::new(".")).context("Error to load init")?;
     let mut index = repo.index().context("Error to get git index")?;
-    let style = Style::default();
 
     let final_add_all = add_all.unwrap_or(false);
 
@@ -20,7 +18,7 @@ pub fn commit(msg: String, add_all: Option<bool>) -> color_eyre::Result<(String,
 
     let has_staged = git_helper::has_staged_changes(&repo)?;
     if !has_staged {
-        return Ok(("Enough staged files has founded.".into(), style.fg(Color::Red)));
+        return Ok("Enough staged files has founded.".into());
     }
 
     let tree_id = index.write_tree().context("Error to get tree id")?;
@@ -30,5 +28,5 @@ pub fn commit(msg: String, add_all: Option<bool>) -> color_eyre::Result<(String,
     repo.commit(Some("HEAD"), &sign, &sign, &msg, &tree, &[])
         .context("Error to create commit")?;
 
-    Ok(("Commit has been commited.".into(), style.fg(Color::Green)))
+    Ok("Commit has been commited.".into())
 }
