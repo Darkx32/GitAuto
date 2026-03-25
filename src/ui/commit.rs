@@ -1,6 +1,7 @@
 use core::fmt;
 
 use inquire::{Confirm, MultiSelect, Select, Text};
+use owo_colors::OwoColorize;
 
 use crate::core::git::git_controller;
 
@@ -61,7 +62,8 @@ pub fn render() -> color_eyre::Result<()> {
 
             
             let msg = format!("{}: {}", commit_type, commit_msg);
-            git_controller::commit(msg, add_all.into())?;
+            let result = git_controller::commit(msg, add_all.into())?;
+            println!("{}", result.green())
         },
         CommitMethods::Generated => {
 
