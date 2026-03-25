@@ -73,6 +73,7 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
 
     let all_files: color_eyre::Result<Vec<std::path::PathBuf>> = git_data.repo.statuses(None)?
         .iter()
+        .filter(|e| e.status() != git2::Status::IGNORED)
         .map(|entry| {
             let path = entry
                 .index_to_workdir().unwrap()
