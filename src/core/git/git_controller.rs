@@ -2,32 +2,33 @@ use std::path::Path;
 
 use color_eyre::eyre::{Context, Ok};
 use git2::{Index, Repository};
+use owo_colors::OwoColorize;
 
 use crate::core::git::git_helper;
 
 pub fn commit(msg: String, is_add_all: Option<bool>) -> color_eyre::Result<String> {
-    let repo = Repository::open(Path::new(".")).context("Error to load init")?;
-    let mut index = repo.index().context("Error to get git index")?;
+    let git_data = git_helper::GitData::global().lock().unwrap();
+    let mut index = git_data.repo.index().context("Error to get git index")?;
 
     let final_add_all = is_add_all.unwrap_or(false);
 
     if final_add_all {
-        add_all(&repo, &mut index).context("Error to add all")?;
+        add_all(&git_data.repo, &mut index).context("Error to add all")?;
     }
 
-    let has_staged = git_helper::has_staged_changes(&repo)?;
+    let has_staged = git_helper::has_staged_changes(&git_data.repo)?;
     if !has_staged {
         return Ok("Enough staged files has founded.".into());
     }
 
     let tree_id = index.write_tree().context("Error to get tree id")?;
-    let tree = repo.find_tree(tree_id).context("Error to get tree")?;
+    let tree = git_data.repo.find_tree(tree_id).context("Error to get tree")?;
 
-    let parent_commit = repo.head()?.peel_to_commit()?;
+    let parent_commit = git_data.repo.head()?.peel_to_commit()?;
     let parent = vec![&parent_commit];
 
-    let sign = repo.signature().context("Error to get user signature")?;
-    repo.commit(Some("HEAD"), &sign, &sign, &msg, &tree, &parent)
+    let sign = git_data.repo.signature().context("Error to get user signature")?;
+    git_data.repo.commit(Some("HEAD"), &sign, &sign, &msg, &tree, &parent)
         .context("Error to create commit")?;
 
     Ok("Commit has been commited.".into())
@@ -42,7 +43,7 @@ pub fn add_all(repo: &Repository, index: &mut Index) -> color_eyre::Result<()> {
             || status.contains(git2::Status::WT_NEW)
             || status.contains(git2::Status::WT_RENAMED) 
         {
-            println!("Add {}", path.display());
+            println!("Add {}", path.display().green());
             0
         } else {
             1
@@ -53,4 +54,44 @@ pub fn add_all(repo: &Repository, index: &mut Index) -> color_eyre::Result<()> {
     index.write()?;
 
     Ok(())
+}
+
+pub fn add(files: Vec<String>) -> color_eyre::Result<()> {
+    let git_data = git_helper::GitData::global().lock().unwrap();
+    let mut index = git_data.repo.index()?;
+
+    for file in files {
+        index.add_path(Path::new(file.as_str()))?;
+    }
+    index.write()?;
+
+    Ok(())
+}
+
+pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
+    let git_data = git_helper::GitData::global().lock().unwrap();
+
+    let all_files: color_eyre::Result<Vec<std::path::PathBuf>> = git_data.repo.statuses(None)?
+        .iter()
+        .map(|entry| {
+            let path = entry
+                .index_to_workdir().unwrap()
+                .old_file()
+                .path()
+                .ok_or_else(|| git2::Error::from_str("Wrong path"))?
+                .to_path_buf();
+
+            Ok(path)
+        }).collect();
+
+    let all_files: Vec<String> = all_files?.iter().map(
+        |f| git_helper::pathbuf_to_string(f)
+    ).flatten().collect();
+
+    Ok(all_files)
+}
+
+#[test]
+fn test_git() {
+    // TODO: Just to test things
 }

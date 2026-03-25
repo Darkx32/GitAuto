@@ -1,12 +1,11 @@
 use core::fmt;
 
-use inquire::{Confirm, Select, Text};
+use inquire::{Confirm, MultiSelect, Select, Text};
 
 use crate::core::git::git_controller;
 
 enum CommitMethods {
     Custom,
-    FullCustom,
     Generated
 }
 
@@ -22,7 +21,7 @@ enum CommitTypes {
 
 pub fn render() -> color_eyre::Result<()> {
     let commit_methods_options = vec![
-        CommitMethods::Custom, CommitMethods::FullCustom, CommitMethods::Generated
+        CommitMethods::Custom, CommitMethods::Generated
     ];
 
     let commit_types_options = vec![
@@ -42,6 +41,16 @@ pub fn render() -> color_eyre::Result<()> {
         .with_default(true)
         .prompt()?;
 
+    if !add_all {
+        let all_files_untracked = git_controller::get_all_files_untracked()?;
+
+        let choosed_files = 
+            MultiSelect::new("Choose files to auto track", all_files_untracked)
+            .prompt()?;
+
+        git_controller::add(choosed_files)?;
+    }
+
     match commit_method {
         CommitMethods::Custom => {
             let commit_type = Select::new("What's type of your commit?", commit_types_options)
@@ -53,9 +62,6 @@ pub fn render() -> color_eyre::Result<()> {
             
             let msg = format!("{}: {}", commit_type, commit_msg);
             git_controller::commit(msg, add_all.into())?;
-        },
-        CommitMethods::FullCustom => {
-
         },
         CommitMethods::Generated => {
 
@@ -69,7 +75,6 @@ impl fmt::Display for CommitMethods {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             CommitMethods::Custom => write!(f, "Custom"),
-            CommitMethods::FullCustom => write!(f, "Full Custom"),
             CommitMethods::Generated => write!(f, "Generated")
         }
     }
