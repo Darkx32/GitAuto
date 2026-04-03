@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use color_eyre::eyre::{Context, Ok};
 use git2::{Index, Repository};

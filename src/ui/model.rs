@@ -3,10 +3,10 @@ use inquire::Confirm;
 use owo_colors::OwoColorize;
 
 pub fn render() -> color_eyre::Result<()> {
-    let is_installed = model_is_installed()?;
+    let (is_installed, path) = model_is_installed()?;
 
     if is_installed {
-        println!("{}", "Installed".green());
+        println!("{} on {}", "Installed".green(), path.blue());
     } else {
         println!("{}", "Not installed".red());
 
