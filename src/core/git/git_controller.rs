@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use color_eyre::eyre::{Context, Ok};
 use git2::{Index, Repository};
@@ -90,9 +90,4 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
     ).flatten().collect();
 
     Ok(all_files)
-}
-
-#[test]
-fn test_git() {
-    // TODO: Just to test things
 }

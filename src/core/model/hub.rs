@@ -18,7 +18,7 @@ pub fn download_model() -> color_eyre::Result<()> {
     let filepath = model.get(&config.model_tensor)
         .expect("Error to find tensor model");
 
-    println!("Modelo baixado em: {:?}", filepath.to_str().green());
+    println!("Modelo baixado em: {}", filepath.display().green());
 
     Ok(())
 }
@@ -44,4 +44,4 @@ pub fn model_is_installed() -> color_eyre::Result<bool> {
     } else {
         Ok(false)
     }
-} 
+}
