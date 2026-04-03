@@ -91,8 +91,3 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
 
     Ok(all_files)
 }
-
-#[test]
-fn test_git() {
-    // TODO: Just to test things
-}

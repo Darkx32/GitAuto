@@ -40,29 +40,8 @@ pub fn get_configuration() -> color_eyre::Result<GitAutoConfig> {
     Ok(config)
 }
 
-pub fn change_model_name(new_model: &str) -> color_eyre::Result<()> {
-    let mut config: GitAutoConfig = confy::load(CONFIG_FILENAME, None)?;
-
-    config.model_name = new_model.into();
-    confy::store(CONFIG_FILENAME, None, config)?;
-
-    Ok(())
-}
-
-pub fn change_model_tensor(new_tensor: &str) -> color_eyre::Result<()> {
-    let mut config: GitAutoConfig = confy::load(CONFIG_FILENAME, None)?;
-
-    config.model_tensor = new_tensor.into();
-    confy::store(CONFIG_FILENAME, None, config)?;
-
-    Ok(())
-}
-
-pub fn change_model_folder(new_folder: &str) -> color_eyre::Result<()> {
-    let mut config: GitAutoConfig = confy::load(CONFIG_FILENAME, None)?;
-
-    config.model_folder = new_folder.into();
-    confy::store(CONFIG_FILENAME, None, config)?;
+pub fn change_configuration(new_config: &GitAutoConfig) -> color_eyre::Result<()> {
+    confy::store(CONFIG_FILENAME, None, new_config)?;
 
     Ok(())
 }

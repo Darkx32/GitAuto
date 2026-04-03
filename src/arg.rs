@@ -1,6 +1,6 @@
 use clap::{Arg, ArgAction, Command};
 
-use crate::ui::{commit, config};
+use crate::{core::model::hub, ui::{commit, config, model}};
 
 fn cli() -> Command {
     Command::new("GitAuto")
@@ -22,6 +22,17 @@ fn cli() -> Command {
                         .help("See actual configuration")
                 )
         )
+        .subcommand(
+            Command::new("model")
+                .about("See actual model installed")
+                .arg(
+                    Arg::new("install")
+                        .short('i')
+                        .long("install")
+                        .action(ArgAction::SetTrue)
+                        .help("Install defined model on configuration")
+                )
+        )
 }
 
 pub fn cli_handle() -> color_eyre::Result<()> {
@@ -33,9 +44,16 @@ pub fn cli_handle() -> color_eyre::Result<()> {
         },
         Some(("config", sub)) => {
             if sub.get_flag("see") {
-                config::render_see()
+                config::see()
             } else {
                 config::render()
+            }
+        },
+        Some(("model", sub)) => {
+            if sub.get_flag("install") {
+                hub::download_model()
+            } else {
+                model::render()
             }
         },
         _ => unreachable!()
