@@ -1,31 +1,41 @@
 use inquire::{Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::{config::controller::{GitAutoConfig, change_model_folder, change_model_name, change_model_tensor, get_configuration}, string::BetterString};
+use crate::core::{config::{GitAutoConfig, change_configuration, get_configuration}, model::hub::model_exists, string::BetterString};
 
 pub fn render() -> color_eyre::Result<()> {
+    let mut config = get_configuration()?;
+
     let config_options = Vec::from(GitAutoConfig::get_all_variables());
     let config_to_change = Select::new("Select configuration to change:", config_options.clone())
         .prompt()?;
 
     match config_to_change {
         x if config_options[0] == x => {
-            let new_model = Text::new("Type your new model:").prompt()?
+
+            loop {
+                let new_model = Text::new("Type your new model:").prompt()?
                 .clean();
 
-            change_model_name(&new_model)?;
+                let exists = model_exists(&new_model)?;
+                if !exists {
+                    println!("{}", "This model not exists on hugging face.".red())
+                } else {
+                    config.model_name = new_model;
+                }
+            }
         },
         x if config_options[1] == x => {
             let new_tensor = Text::new("Type your new tensor from model:").prompt()?
                 .clean();
 
-            change_model_tensor(&new_tensor)?;
+            config.model_tensor = new_tensor;
         },
         x if config_options[2] == x => {
             let new_folder = Text::new("Type new model folder location:").prompt()?
                 .clean();
             
-            change_model_folder(&new_folder)?;
+            config.model_folder = new_folder;
         },
         _ => {
             println!("{}", "Option has not founded.".red());
@@ -33,12 +43,13 @@ pub fn render() -> color_eyre::Result<()> {
         }
     }
 
+    change_configuration(&config)?;
     println!("{}", "Option has been updated.".green());
 
     Ok(())
 }
 
-pub fn render_see() -> color_eyre::Result<()> {
+pub fn see() -> color_eyre::Result<()> {
     let config_options = Vec::from(GitAutoConfig::get_all_variables());
     let configuration = get_configuration()?;
 
