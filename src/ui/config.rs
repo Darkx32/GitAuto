@@ -1,7 +1,7 @@
 use inquire::{Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::{config::{GitAutoConfig, change_configuration, get_configuration}, model::hub::model_exists, string::BetterString};
+use crate::core::{config::{GitAutoConfig, change_configuration, get_configuration, reset_to_default}, model::hub::model_exists, string::BetterString};
 
 pub fn render() -> color_eyre::Result<()> {
     let mut config = get_configuration()?;
@@ -59,6 +59,13 @@ pub fn see() -> color_eyre::Result<()> {
     println!("{}: {}", config_options[2].blue(), configuration.model_folder.green());
     println!("{}", "--- Final ---".bold().yellow());
 
+
+    Ok(())
+}
+
+pub fn reset() -> color_eyre::Result<()> {
+    reset_to_default()?;
+    println!("{}", "Configurations is reseted to default factory".bold().yellow());
 
     Ok(())
 }

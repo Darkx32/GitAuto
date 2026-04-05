@@ -19,7 +19,13 @@ fn cli() -> Command {
                         .long("see")
                         .short('s')
                         .action(ArgAction::SetTrue)
-                        .help("See actual configuration")
+                        .help("See actual configuration"))
+                .arg(
+                    Arg::new("reset")
+                        .long("reset")
+                        .short('r')
+                        .action(ArgAction::SetTrue)
+                        .help("Reset to default configuration")
                 )
         )
         .subcommand(
@@ -45,6 +51,8 @@ pub fn cli_handle() -> color_eyre::Result<()> {
         Some(("config", sub)) => {
             if sub.get_flag("see") {
                 config::see()
+            } else if sub.get_flag("reset") {
+                config::reset()
             } else {
                 config::render()
             }
