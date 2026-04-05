@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use color_eyre::eyre::{Context, Ok};
-use git2::{Index, Repository};
+use git2::{DiffOptions, Index, Repository};
 use owo_colors::OwoColorize;
 
 use crate::core::git::git_helper;
@@ -90,4 +90,28 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
     ).flatten().collect();
 
     Ok(all_files)
+}
+
+pub fn get_all_lines_changed() -> color_eyre::Result<Vec<String>> {
+    let repo = Repository::open(".")?;
+
+    let mut opts = DiffOptions::new();
+    let diff = repo.diff_index_to_workdir(None, Some(&mut opts))?;
+    let mut all_data = Vec::<String>::new();
+
+    diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
+        let origin = line.origin();
+
+        if origin == '+' || origin == '-'{
+            let content = str::from_utf8(line.content()).unwrap_or("");
+
+            let label = if origin == '+' { "ADD" } else { "DEL" };
+
+            all_data.push(format!("{} {}", label, content.trim_end()));
+        }
+
+        true
+    })?;
+
+    Ok(all_data)
 }

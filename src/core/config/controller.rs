@@ -21,17 +21,25 @@ impl Default for GitAutoConfig {
         let project_dirs = ProjectDirs::from("io", "github", "GitAuto")
             .unwrap();
 
-        let model_name = String::from("microsoft/Phi-4-mini-instruct");
+        let model_name = String::from("HuggingFaceTB/SmolLM2-135M-Instruct");
         let model: Vec<&str> = model_name.split("/").collect();
 
         let model_folder = format!("{}/{}", String::from(project_dirs.data_dir().to_str().unwrap()), model[1]);
 
         Self {
             model_name,
-            model_tensor: String::from("model-00002-of-00002.safetensors"),
+            model_tensor: String::from("model.safetensors"),
             model_folder
         }
     }
+}
+
+pub fn reset_to_default() -> color_eyre::Result<()> {
+    let config_reseted = GitAutoConfig::default();
+
+    confy::store(CONFIG_FILENAME, None, config_reseted)?;
+
+    Ok(())
 }
 
 pub fn get_configuration() -> color_eyre::Result<GitAutoConfig> {
