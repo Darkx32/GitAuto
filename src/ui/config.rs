@@ -1,64 +1,55 @@
-use inquire::{Select, Text};
+use inquire::{Confirm, Select};
 use owo_colors::OwoColorize;
 
-use crate::core::{config::{GitAutoConfig, change_configuration, get_configuration, reset_to_default}, model::hub::model_exists, string::BetterString};
+use crate::core::{config::{get_configuration, reset_to_default, set_model}, model::hub::{delete_model, download_model, model_is_installed}};
 
 pub fn render() -> color_eyre::Result<()> {
-    let mut config = get_configuration()?;
-
-    let config_options = Vec::from(GitAutoConfig::get_all_variables());
-    let config_to_change = Select::new("Select configuration to change:", config_options.clone())
+    let option = Select::new("Select option to change:", 
+    ["Model", "Folder"].into())
         .prompt()?;
 
-    match config_to_change {
-        x if config_options[0] == x => {
+    match option {
+        "Model" => {
+            let option = Select::new("What model do you want use?", 
+            ["TinyLlama/TinyLlama-1.1B-Chat-v1.0", "microsoft/phi-2"].to_vec())
+                .prompt()?;
 
-            loop {
-                let new_model = Text::new("Type your new model:").prompt()?
-                .clean();
+            let (older_is_installed, older_path) = model_is_installed()?;
+            if older_is_installed {
+                let confirmation = Confirm::new("Delete old model installed on system?")
+                    .with_default(true).prompt()?;
 
-                let exists = model_exists(&new_model)?;
-                if !exists {
-                    println!("{}", "This model not exists on hugging face.".red())
-                } else {
-                    config.model_name = new_model;
+                if confirmation {
+                    let config = get_configuration()?;
+
+                    delete_model(older_path, config.model_name)?;
+                    println!("{}", "Old model has deleted successfully".green());
                 }
             }
-        },
-        x if config_options[1] == x => {
-            let new_tensor = Text::new("Type your new tensor from model:").prompt()?
-                .clean();
 
-            config.model_tensor = new_tensor;
-        },
-        x if config_options[2] == x => {
-            let new_folder = Text::new("Type new model folder location:").prompt()?
-                .clean();
-            
-            config.model_folder = new_folder;
+            set_model(&String::from(option))?;
+            let confirmation = Confirm::new("Download new model?")
+                .with_default(true).prompt()?;
+
+            if confirmation {
+                download_model()?;
+            }
         },
         _ => {
-            println!("{}", "Option has not founded.".red());
-            return Ok(())
+            println!("{}", "Option not founded.".red());
         }
     }
-
-    change_configuration(&config)?;
-    println!("{}", "Option has been updated.".green());
 
     Ok(())
 }
 
 pub fn see() -> color_eyre::Result<()> {
-    let config_options = Vec::from(GitAutoConfig::get_all_variables());
     let configuration = get_configuration()?;
 
     println!("{}", "All configurations:".bold().yellow());
-    println!("{}: {}", config_options[0].blue(), configuration.model_name.green());
-    println!("{}: {}", config_options[1].blue(), configuration.model_tensor.green());
-    println!("{}: {}", config_options[2].blue(), configuration.model_folder.green());
+    println!("{}: {}", "Model name".blue(), configuration.model_name.green());
+    println!("{}: {}", "model folder".blue(), configuration.model_folder.green());
     println!("{}", "--- Final ---".bold().yellow());
-
 
     Ok(())
 }

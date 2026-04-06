@@ -1,12 +1,8 @@
 use std::path::PathBuf;
-use candle_nn::VarBuilder;
-use candle_transformers::models::phi3::Config;
-use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
-use hf_hub::{Cache, Repo, api::sync::{Api, ApiBuilder}};
-use tokenizers::Tokenizer;
+use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
-use crate::core::{config, model::helper::{create_folder_it_not_exists, get_device}};
+use crate::core::{config::{self, get_configuration}, git::git_controller::get_all_lines_changed, model::{helper::create_folder_it_not_exists, models}};
 
 pub fn download_model() -> color_eyre::Result<()> {
     let config = config::get_configuration()?;
@@ -23,7 +19,7 @@ pub fn download_model() -> color_eyre::Result<()> {
 
     model.get("config.json")?;
     model.get("tokenizer.json")?;
-    let filepath = model.get(&config.model_tensor)
+    let filepath = model.get("model.safetensors")
         .expect("Error to find tensor model");
 
     println!("Modelo baixado em: {}", filepath.display().green());
@@ -31,36 +27,53 @@ pub fn download_model() -> color_eyre::Result<()> {
     Ok(())
 }
 
-pub fn run_model() -> color_eyre::Result<()> {
-    let tensor_path = model_is_installed()?;
-    if !tensor_path.0 {
-        return Err(eyre!("Model not installed"))
+pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
+    let (is_installed, model_path) = model_is_installed()?;
+    if !is_installed {
+        println!("{}", "Model not found.".red());
+        return Ok("".into())
     }
-    let device = get_device()?;
 
-    let tensor_path_buf = PathBuf::from(tensor_path.1);
-    let tokenizer_path_buf = tensor_path_buf.with_file_name("tokenizer.json");
-    let config_path_buf = tensor_path_buf.with_file_name("config.json");
+    let config = get_configuration()?;
+    let diff = get_all_lines_changed(filter)?;
 
-    let config_str = std::fs::read_to_string(config_path_buf)?;
-    let config: Config = serde_json::from_str(&config_str)?;
-    let tokenizer = Tokenizer::from_file(tokenizer_path_buf)
-        .expect("Error to load tokenizer");
+    let prompt = format!(
+    "<|system|>
+    Generate a Conventional Commit message from a git diff.
 
-    let vb = unsafe {
-        VarBuilder::from_mmaped_safetensors(&[tensor_path_buf], candle_core::DType::F32, &device)?
+    <|user|>
+    {}
+
+    <|assistant|>", diff.join("\n"));
+
+    println!("{}", prompt);
+
+    let output = match config.model_name.as_str() {
+        "TinyLlama/TinyLlama-1.1B-Chat-v1.0" => {
+            models::tiny::run_tiny(model_path, prompt)?
+        },
+        _ => unreachable!()
     };
 
-    Ok(())
+    Ok(output)
 }
 
-pub fn model_exists(model: &String) -> color_eyre::Result<bool> {
-    let api = Api::new()?.model(model.into());
+pub fn delete_model(start: String, target: String) -> color_eyre::Result<()> {
+    let start_buf = PathBuf::from(start);
+    let mut current = Some(start_buf.as_path());
 
-    match api.info() {
-        Ok(_) => return Ok(true),
-        Err(_) => return Ok(false)
+    while let Some(path) = current {
+        if let Some(name) = path.file_name() {
+            if name == target.as_str() {
+                std::fs::remove_dir_all(path)?;
+                break;
+            }
+        }
+
+        current = path.parent();
     }
+
+    Ok(())
 }
 
 pub fn model_is_installed() -> color_eyre::Result<(bool, String)> {
@@ -70,7 +83,7 @@ pub fn model_is_installed() -> color_eyre::Result<(bool, String)> {
     let cache = Cache::new(path_buf);
     let repo = Repo::model(config.model_name);
 
-    if let Some(path) = cache.repo(repo).get(&config.model_tensor) {
+    if let Some(path) = cache.repo(repo).get("model.safetensors") {
         return Ok((true, path.display().to_string()))
     } else {
         Ok((false, String::new()))

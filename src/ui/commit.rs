@@ -3,7 +3,7 @@ use core::fmt;
 use inquire::{Confirm, MultiSelect, Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::git::git_controller;
+use crate::core::{git::git_controller, model::hub};
 
 enum CommitMethods {
     Custom,
@@ -42,15 +42,17 @@ pub fn render() -> color_eyre::Result<()> {
         .with_default(true)
         .prompt()?;
 
-    if !add_all {
+    let choosed_files = if !add_all {
         let all_files_untracked = git_controller::get_all_files_untracked()?;
 
         let choosed_files = 
             MultiSelect::new("Choose files to auto track", all_files_untracked)
             .prompt()?;
 
-        git_controller::add(choosed_files)?;
-    }
+        choosed_files
+    } else {
+        [].into()
+    };
 
     match commit_method {
         CommitMethods::Custom => {
@@ -59,14 +61,21 @@ pub fn render() -> color_eyre::Result<()> {
 
             let commit_msg = Text::new("Commit message:")
                 .prompt()?;
-
             
+            git_controller::add(choosed_files)?;
+
             let msg = format!("{}: {}", commit_type, commit_msg);
             let result = git_controller::commit(msg, add_all.into())?;
             println!("{}", result.green())
         },
         CommitMethods::Generated => {
+            let generated = hub::run(Some(choosed_files.clone()))?;
 
+            let _commit_msg = Text::new("Commit message(generated):")
+                .with_default(&generated)
+                .prompt()?;
+
+            git_controller::add(choosed_files)?;
         }
     }
 
