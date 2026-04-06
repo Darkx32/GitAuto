@@ -92,14 +92,25 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
     Ok(all_files)
 }
 
-pub fn get_all_lines_changed() -> color_eyre::Result<Vec<String>> {
+pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<Vec<String>> {
     let repo = Repository::open(".")?;
+
+    let filter = filter.unwrap_or([].into());
 
     let mut opts = DiffOptions::new();
     let diff = repo.diff_index_to_workdir(None, Some(&mut opts))?;
     let mut all_data = Vec::<String>::new();
 
-    diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
+    diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
+        let contains = |path: Option<&std::path::Path>| {
+            path.map_or(false, |p| filter.iter().any(|f| f == p))
+        };
+
+        if !contains(delta.new_file().path()) &&
+        !contains(delta.old_file().path()) {
+            return true;
+        }
+
         let origin = line.origin();
 
         if origin == '+' || origin == '-'{
@@ -114,4 +125,13 @@ pub fn get_all_lines_changed() -> color_eyre::Result<Vec<String>> {
     })?;
 
     Ok(all_data)
+}
+
+#[test]
+fn test() {
+    let cargo = Some([String::from("Cargo.toml")].to_vec());
+    let diff = get_all_lines_changed(cargo).unwrap();
+
+    println!("{}", diff.join("\n"));
+    //println!("{:?}", get_all_lines_changed(&Some(["Cargo.toml".into()].to_vec())))
 }
