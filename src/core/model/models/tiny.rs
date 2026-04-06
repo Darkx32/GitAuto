@@ -9,6 +9,12 @@ use tokenizers::Tokenizer;
 use crate::core::model::helper::get_device;
 
 pub fn run_tiny(model_path: String, prompt: String) -> color_eyre::Result<String> {
+    let prompt = if prompt.len() > 1000 {
+        &prompt[prompt.len() - 1000..]
+    } else {
+        &prompt
+    };
+
     let device = get_device()?;
     
     let tensor_path = PathBuf::from(model_path);
@@ -35,7 +41,7 @@ pub fn run_tiny(model_path: String, prompt: String) -> color_eyre::Result<String
 
     let model = Llama::load(vb, &config)?;
     let mut tokens = tokenizer
-        .encode(prompt.clone(), true)
+        .encode(prompt, true)
         .expect("Error to create tokens")
         .get_ids()
         .to_vec();

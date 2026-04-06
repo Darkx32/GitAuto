@@ -103,6 +103,10 @@ pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<
 
     diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
         let contains = |path: Option<&std::path::Path>| {
+            if filter.is_empty() {
+                return true;
+            }
+
             path.map_or(false, |p| filter.iter().any(|f| f == p))
         };
 
@@ -125,13 +129,4 @@ pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<
     })?;
 
     Ok(all_data)
-}
-
-#[test]
-fn test() {
-    let cargo = Some([String::from("Cargo.toml")].to_vec());
-    let diff = get_all_lines_changed(cargo).unwrap();
-
-    println!("{}", diff.join("\n"));
-    //println!("{:?}", get_all_lines_changed(&Some(["Cargo.toml".into()].to_vec())))
 }
