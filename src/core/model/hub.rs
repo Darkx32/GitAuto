@@ -46,8 +46,6 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
 
     <|assistant|>", diff.join("\n"));
 
-    println!("{}", prompt);
-
     let output = match config.model_name.as_str() {
         "TinyLlama/TinyLlama-1.1B-Chat-v1.0" => {
             models::tiny::run_tiny(model_path, prompt)?

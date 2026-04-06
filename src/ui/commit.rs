@@ -40,7 +40,7 @@ pub fn render() -> color_eyre::Result<()> {
 
     let add_all = Confirm::new("Add all files to commit?")
         .with_default(true)
-        .prompt()?;
+        .prompt().expect("Not enable to find any changes on files in this directory");
 
     let choosed_files = if !add_all {
         let all_files_untracked = git_controller::get_all_files_untracked()?;
