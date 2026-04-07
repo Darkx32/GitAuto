@@ -9,12 +9,6 @@ use tokenizers::Tokenizer;
 use crate::core::model::helper::get_device;
 
 pub fn run_tiny(model_path: String, prompt: String) -> color_eyre::Result<String> {
-    let prompt = if prompt.len() > 1000 {
-        &prompt[prompt.len() - 1000..]
-    } else {
-        &prompt
-    };
-
     let device = get_device()?;
     
     let tensor_path = PathBuf::from(model_path);
@@ -46,22 +40,31 @@ pub fn run_tiny(model_path: String, prompt: String) -> color_eyre::Result<String
         .get_ids()
         .to_vec();
 
+    let prompt_length = tokens.len();
+
     let seed = StdRng::seed_from_u64(42).next_u64();
     let mut logits_processor = LogitsProcessor::new(seed, Some(0.7), Some(40.0));
 
+    let mut index_pos = 0;
     for index in 0..200 {
-        let context_size = if index > 0 { 1 } else { tokens.len() };
+        let (context_size, context_index) = if index > 0 { (1, index_pos) } else { (tokens.len(), 0) };
 
         let ctxt = &tokens[tokens.len().saturating_sub(context_size)..];
         let input = Tensor::new(ctxt, &device)?.unsqueeze(0)?;
-        let logits = model.forward(&input, context_size, &mut cache)?;
-        let logits = logits.squeeze(0)?;
+        let logits = model.forward(&input, context_index, &mut cache)?;
+        let logits = logits.squeeze(0)?.to_dtype(candle_core::DType::F32)?;
+        
+        index_pos += ctxt.len();
 
         let next_token = logits_processor.sample(&logits)?;
         tokens.push(next_token);
+
+        if next_token == 2 {
+            break;
+        }
     }
 
-    let output = tokenizer.decode(&tokens, true)
+    let output = tokenizer.decode(&tokens[prompt_length..], true)
         .expect("Error to decode tokens");
 
     Ok(output)

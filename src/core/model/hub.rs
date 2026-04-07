@@ -38,13 +38,14 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     let diff = get_all_lines_changed(filter)?;
 
     let prompt = format!(
-    "<|system|>
-    Generate a Conventional Commit message from a git diff.
+    "<|system|>\n\
+    You are a strict commit message generator. Output ONLY a single-line Conventional Commit message for the code changes provided. No explanations, no markdown, no quotes.</s>\n\
+    <|user|>\n\
+    Changes:\n\
+    {}</s>\n\
+    <|assistant|>\n", diff.join("\n"));
 
-    <|user|>
-    {}
-
-    <|assistant|>", diff.join("\n"));
+    println!("{}", prompt);
 
     let output = match config.model_name.as_str() {
         "TinyLlama/TinyLlama-1.1B-Chat-v1.0" => {
