@@ -14,10 +14,9 @@ impl Default for GitAutoConfig {
         let project_dirs = ProjectDirs::from("io", "github", "GitAuto")
             .unwrap();
 
-        let model_name = String::from("TinyLlama/TinyLlama-1.1B-Chat-v1.0");
-        let model: Vec<&str> = model_name.split("/").collect();
+        let model_name = String::from("Qwen/Qwen2-1.5B-Instruct-GGUF");
 
-        let model_folder = format!("{}/{}", String::from(project_dirs.data_dir().to_str().unwrap()), model[1]);
+        let model_folder = String::from(project_dirs.data_dir().to_str().unwrap());
 
         Self {
             model_name,
