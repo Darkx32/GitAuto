@@ -3,6 +3,8 @@ use std::{fs, path::PathBuf};
 use candle_core::Device;
 use owo_colors::OwoColorize;
 
+use crate::core::model::models;
+
 pub(super) fn create_folder_it_not_exists(folder: &PathBuf) -> color_eyre::Result<()> {
     if !folder.is_dir() {
         fs::create_dir_all(folder)?;
@@ -25,3 +27,12 @@ pub(super) fn get_device() -> color_eyre::Result<Device> {
     println!("{}", "CPU is using on backend!".bold());
     Ok(Device::Cpu)
 }
+
+pub(super) fn get_model_data(model: String) -> (String, String){
+    match model.as_str() {
+        "Qwen/Qwen2-1.5B-Instruct-GGUF" => {
+            (models::qwen::get_qwen_gguf(), models::qwen::get_real_model())
+        },
+        _ => unreachable!()
+    }
+} 

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use owo_colors::OwoColorize;
 use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
-use crate::core::{config::{self, get_configuration}, git::git_controller::get_all_lines_changed, model::{helper::create_folder_it_not_exists, models}};
+use crate::core::{config::{self, get_configuration}, git::git_controller::get_all_lines_changed, model::{helper::{create_folder_it_not_exists, get_model_data}, models}};
 
 pub fn download_model() -> color_eyre::Result<()> {
     let config = config::get_configuration()?;
@@ -15,14 +15,22 @@ pub fn download_model() -> color_eyre::Result<()> {
         .build()?;
     let model = api.model(config.model_name.clone());
 
-    println!("{}{}", "Instalando o modelo: ", config.model_name.bold());
+    println!("Downloading model: {}", config.model_name.bold());
 
-    model.get("config.json")?;
-    model.get("tokenizer.json")?;
-    let filepath = model.get("model.safetensors")
+    let (tensor, model_name) = get_model_data(config.model_name);
+    let filepath = model.get(&tensor)
         .expect("Error to find tensor model");
 
-    println!("Modelo baixado em: {}", filepath.display().green());
+    let model = api.model(model_name.clone());
+    let toke_filepath = model.get("tokenizer.json")?;
+
+    std::fs::copy(&toke_filepath, filepath.with_file_name("tokenizer.json"))?;
+    
+    let folder_to_delete = toke_filepath.parent().unwrap()
+        .parent().unwrap().parent().unwrap();
+    std::fs::remove_dir_all(folder_to_delete)?;
+
+    println!("Model is installed on: {}", filepath.display().green());
 
     Ok(())
 }
@@ -37,19 +45,11 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     let config = get_configuration()?;
     let diff = get_all_lines_changed(filter)?;
 
-    let prompt = format!(
-    "<|system|>\n\
-    You are a strict commit message generator. Output ONLY a single-line Conventional Commit message for the code changes provided. No explanations, no markdown, no quotes.</s>\n\
-    <|user|>\n\
-    Changes:\n\
-    {}</s>\n\
-    <|assistant|>\n", diff.join("\n"));
-
-    println!("{}", prompt);
+    let prompt = diff.join("\n");
 
     let output = match config.model_name.as_str() {
-        "TinyLlama/TinyLlama-1.1B-Chat-v1.0" => {
-            models::tiny::run_tiny(model_path, prompt)?
+        "Qwen/Qwen2-1.5B-Instruct-GGUF" => {
+            models::qwen::run_qwen(model_path, prompt)?
         },
         _ => unreachable!()
     };
@@ -80,9 +80,11 @@ pub fn model_is_installed() -> color_eyre::Result<(bool, String)> {
     let path_buf = PathBuf::from(config.model_folder);
 
     let cache = Cache::new(path_buf);
-    let repo = Repo::model(config.model_name);
+    let repo = Repo::model(config.model_name.clone());
 
-    if let Some(path) = cache.repo(repo).get("model.safetensors") {
+    let (model_tensor, _) = get_model_data(config.model_name);
+
+    if let Some(path) = cache.repo(repo).get(&model_tensor) {
         return Ok((true, path.display().to_string()))
     } else {
         Ok((false, String::new()))

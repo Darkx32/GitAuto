@@ -1,7 +1,7 @@
 use inquire::{Confirm, Select};
 use owo_colors::OwoColorize;
 
-use crate::core::{config::{get_configuration, reset_to_default, set_model}, model::hub::{delete_model, download_model, model_is_installed}};
+use crate::core::{config, model::hub::{delete_model, download_model, model_is_installed}};
 
 pub fn render() -> color_eyre::Result<()> {
     let option = Select::new("Select option to change:", 
@@ -11,7 +11,7 @@ pub fn render() -> color_eyre::Result<()> {
     match option {
         "Model" => {
             let option = Select::new("What model do you want use?", 
-            ["TinyLlama/TinyLlama-1.1B-Chat-v1.0", "microsoft/phi-2"].to_vec())
+            ["Qwen/Qwen2-1.5B-Instruct-GGUF"].to_vec())
                 .prompt()?;
 
             let (older_is_installed, older_path) = model_is_installed()?;
@@ -20,19 +20,22 @@ pub fn render() -> color_eyre::Result<()> {
                     .with_default(true).prompt()?;
 
                 if confirmation {
-                    let config = get_configuration()?;
+                    let config = config::get_configuration()?;
 
                     delete_model(older_path, config.model_name)?;
                     println!("{}", "Old model has deleted successfully".green());
                 }
             }
 
-            set_model(&String::from(option))?;
-            let confirmation = Confirm::new("Download new model?")
-                .with_default(true).prompt()?;
+            config::set_model(&String::from(option))?;
+            let (actual_is_installed, _) = model_is_installed()?;
+            if !actual_is_installed {
+                let confirmation = Confirm::new("Download new model?")
+                    .with_default(true).prompt()?;
 
-            if confirmation {
-                download_model()?;
+                if confirmation {
+                    download_model()?;
+                }
             }
         },
         _ => {
@@ -44,7 +47,7 @@ pub fn render() -> color_eyre::Result<()> {
 }
 
 pub fn see() -> color_eyre::Result<()> {
-    let configuration = get_configuration()?;
+    let configuration = config::get_configuration()?;
 
     println!("{}", "All configurations:".bold().yellow());
     println!("{}: {}", "Model name".blue(), configuration.model_name.green());
@@ -55,7 +58,7 @@ pub fn see() -> color_eyre::Result<()> {
 }
 
 pub fn reset() -> color_eyre::Result<()> {
-    reset_to_default()?;
+    config::reset_to_default()?;
     println!("{}", "Configurations is reseted to default factory".bold().yellow());
 
     Ok(())
