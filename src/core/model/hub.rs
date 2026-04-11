@@ -48,7 +48,7 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     let prompt = diff.join("\n");
 
     let output = match config.model_name.as_str() {
-        "Qwen/Qwen2-1.5B-Instruct-GGUF" => {
+        "bartowski/Qwen2.5-0.5B-Instruct-GGUF" => {
             models::qwen::run_qwen(model_path, prompt)?
         },
         _ => unreachable!()

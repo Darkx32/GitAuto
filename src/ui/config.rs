@@ -11,7 +11,7 @@ pub fn render() -> color_eyre::Result<()> {
     match option {
         "Model" => {
             let option = Select::new("What model do you want use?", 
-            ["Qwen/Qwen2-1.5B-Instruct-GGUF"].to_vec())
+            ["bartowski/Qwen2.5-0.5B-Instruct-GGUF"].to_vec())
                 .prompt()?;
 
             let (older_is_installed, older_path) = model_is_installed()?;

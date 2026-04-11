@@ -30,7 +30,7 @@ pub(super) fn get_device() -> color_eyre::Result<Device> {
 
 pub(super) fn get_model_data(model: String) -> (String, String){
     match model.as_str() {
-        "Qwen/Qwen2-1.5B-Instruct-GGUF" => {
+        "bartowski/Qwen2.5-0.5B-Instruct-GGUF" => {
             (models::qwen::get_qwen_gguf(), models::qwen::get_real_model())
         },
         _ => unreachable!()

@@ -14,7 +14,7 @@ impl Default for GitAutoConfig {
         let project_dirs = ProjectDirs::from("io", "github", "GitAuto")
             .unwrap();
 
-        let model_name = String::from("Qwen/Qwen2-1.5B-Instruct-GGUF");
+        let model_name = String::from("bartowski/Qwen2.5-0.5B-Instruct-GGUF");
 
         let model_folder = String::from(project_dirs.data_dir().to_str().unwrap());
 
