@@ -2,17 +2,16 @@ use std::path::PathBuf;
 
 use candle_core::Tensor;
 use candle_transformers::{generation::LogitsProcessor, models::quantized_qwen2::ModelWeights};
-use rand::{Rng, SeedableRng, rngs::StdRng};
 use tokenizers::Tokenizer;
 
 use crate::core::model::helper::get_device;
 
 pub fn get_qwen_gguf() -> String{
-    "qwen2-1_5b-instruct-q4_0.gguf".into()
+    "Qwen2.5-0.5B-Instruct-Q4_K_M.gguf".into()
 }
 
 pub fn get_real_model() -> String{
-    "Qwen/Qwen2-1.5B-Instruct".into()
+    "Qwen/Qwen2.5-0.5B-Instruct".into()
 }
 
 pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String> {
@@ -34,8 +33,7 @@ pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String
         .expect("Error to generate tokens");
     let tokens = tokens.get_ids();
 
-    let seed = StdRng::seed_from_u64(42).next_u64();
-    let mut logits_processor = LogitsProcessor::new(seed, Some(0.2), Some(0.8));
+    let mut logits_processor = LogitsProcessor::new(42, Some(0.15), None);
 
     let mut next_token = {
         let input = Tensor::new(tokens, &device)?.unsqueeze(0)?;
@@ -44,13 +42,20 @@ pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String
         logits_processor.sample(&logits)?
     };
 
+    let fallback_token = tokenizer
+        .token_to_id("<|im_end|>")
+        .unwrap_or(151645);
+
     let mut all_tokens = Vec::<u32>::new();
-    for index in  0..200 {
+    for index in  0..100 {
         let input = Tensor::new(&[next_token], &device)?.unsqueeze(0)?;
         let logits = model.forward(&input, tokens.len() + index)?;
         let logits = logits.squeeze(0)?;
 
         next_token = logits_processor.sample(&logits)?;
+        if next_token == fallback_token {
+            break;
+        }
         all_tokens.push(next_token);
     }
 
@@ -61,43 +66,41 @@ pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String
 }
 
 fn get_prompt(prompt: String) -> String {
-    format!("
-You generate Git commit messages.
+    format!("<|im_start|>system
+You are a commit message generator that MUST strictly follow the Conventional Commits specification.
 
-Rules:
-- Output EXACTLY one line.
-- Format: <type>: <short description>
-- Language: English only.
-- Max 70 characters.
-- Do NOT explain anything.
-- Do NOT add extra text.
+OUTPUT FORMAT (STRICT):
+type(optional-scope): short description
 
-Allowed types:
-feat, fix, docs, style, refactor, perf, test, chore
+RULES (MANDATORY):
+- Output ONLY one single line.
+- NO explanations, NO extra text, NO markdown.
+- MAX 72 characters total.
+- Description MUST be in English.
+- Use imperative mood (e.g., 'add', 'fix', 'remove').
+- DO NOT end with a period.
+- DO NOT include file names unless necessary.
 
-Definitions:
-feat = new feature
-fix = bug fix
-docs = documentation only
-style = formatting only
-refactor = code change without behavior change
-perf = performance improvement
-test = adding or updating tests
-chore = tooling or maintenance
+ALLOWED TYPES:
+feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
 
-Examples:
-ADD: new login endpoint
-DEL: old login logic
--> feat: add login endpoint
+SCOPE:
+- Optional, short, lowercase (e.g., parser, api, ui)
 
-ADD: fix null pointer crash
--> fix: prevent null pointer crash
+SELECTION RULES:
+- feat → new feature
+- fix → bug fix
+- refactor → code change without behavior change
+- perf → performance improvement
+- style → formatting only
+- docs → documentation only
+- test → tests added/changed
+- build/ci → tooling or pipeline
+- chore → maintenance
 
-ADD: reformat code
--> style: format code
-
-Now generate the commit:
-
-{}
-", prompt)
+IF DIFF IS EMPTY:
+- Output: chore: no changes<|im_end|>
+<|im_start|>user
+{}<|im_end|>
+<|im_start|>assistant", prompt.trim())
 }

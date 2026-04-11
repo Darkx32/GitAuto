@@ -71,11 +71,13 @@ pub fn render() -> color_eyre::Result<()> {
         CommitMethods::Generated => {
             let generated = hub::run(Some(choosed_files.clone()))?;
 
-            let _commit_msg = Text::new("Commit message(generated):")
-                .with_default(&generated)
+            let commit_msg = Text::new("Commit message(generated):")
+                .with_initial_value(&generated)
                 .prompt()?;
 
             git_controller::add(choosed_files)?;
+            let result = git_controller::commit(commit_msg, add_all.into())?;
+            println!("{}", result.green())
         }
     }
 
