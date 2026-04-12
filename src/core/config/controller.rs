@@ -42,6 +42,15 @@ pub fn set_model(new_model: &String) -> color_eyre::Result<()> {
     Ok(())
 }
 
+pub fn set_folder(new_folder: &String) -> color_eyre::Result<()> {
+    let mut config = get_configuration()?;
+    config.model_folder = new_folder.into();
+
+    confy::store(CONFIG_FILENAME, None, config)?;
+
+    Ok(())
+}
+
 pub fn get_configuration() -> color_eyre::Result<GitAutoConfig> {
     let config: GitAutoConfig = confy::load(CONFIG_FILENAME, None)?;
 
