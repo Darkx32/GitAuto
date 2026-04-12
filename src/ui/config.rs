@@ -1,4 +1,6 @@
-use inquire::{Confirm, Select};
+use std::path::Path;
+
+use inquire::{Confirm, Select, Text};
 use owo_colors::OwoColorize;
 
 use crate::core::{config, model::hub::{delete_model, download_model, model_is_installed}};
@@ -37,6 +39,26 @@ pub fn render() -> color_eyre::Result<()> {
                     download_model()?;
                 }
             }
+        },
+        "Folder" => {
+            let new_folder = Text::new("What's your new folder?")
+                .prompt()?;
+
+            std::fs::create_dir_all(&new_folder)?;
+
+            let old_folder = config::get_configuration()?.model_folder;
+            let new_folder_path = Path::new(&new_folder);
+            for entry in std::fs::read_dir(&old_folder)? {
+                let entry = entry?;
+                let entry_path = entry.path();
+
+                let dest = new_folder_path.join(entry.file_name());
+                std::fs::rename(&entry_path, dest)?;
+            }
+            std::fs::remove_dir_all(&old_folder)?;
+
+            config::set_folder(&new_folder)?;
+            println!("New folder location is: {}", new_folder.bold());
         },
         _ => {
             println!("{}", "Option not founded.".red());
