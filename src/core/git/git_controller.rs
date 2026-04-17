@@ -110,20 +110,22 @@ pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<
             path.map_or(false, |p| filter.iter().any(|f| f == p))
         };
 
+        let old_file = delta.old_file().path();
+        let new_file = delta.new_file().path();
+
         if !contains(delta.new_file().path()) &&
         !contains(delta.old_file().path()) {
             return true;
         }
 
+        all_data.push(format!("file: {} -> {}", 
+            old_file.unwrap().to_str().unwrap_or("unknown"), 
+            new_file.unwrap().to_str().unwrap_or("unknown")));
+
         let origin = line.origin();
+        let content = str::from_utf8(line.content()).unwrap_or("");
 
-        if origin == '+' || origin == '-'{
-            let content = str::from_utf8(line.content()).unwrap_or("");
-
-            let label = if origin == '+' { "ADD" } else { "DEL" };
-
-            all_data.push(format!("{} {}", label, content.trim_end()));
-        }
+        all_data.push(format!("  {} {}", origin, content.trim()));
 
         true
     })?;
