@@ -3,7 +3,7 @@ use core::fmt;
 use inquire::{Confirm, MultiSelect, Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::{git::git_controller, model::hub};
+use crate::core::{git::{git_check, git_controller}, model::hub};
 
 enum CommitMethods {
     Custom,
@@ -21,6 +21,13 @@ enum CommitTypes {
 }
 
 pub fn render() -> color_eyre::Result<()> {
+    if !git_check::check_if_directory_is_repo() {
+        println!("{}", "Actual directory is not a repository.".bold().red());
+    }
+    if !git_check::check_if_repo_has_changes()? {
+        println!("{}", "Actual directory don't have any change files".bold().red());
+    }
+
     let commit_methods_options = vec![
         CommitMethods::Custom, CommitMethods::Generated
     ];
