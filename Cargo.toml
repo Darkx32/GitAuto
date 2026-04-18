@@ -2,6 +2,7 @@
 name = "GitAuto"
 version = "0.1.0"
 edition = "2024"
+repository = "https://github.com/Darkx32/GitAuto"
 
 [dependencies]
 candle-core = "0.10.2"
@@ -23,3 +24,8 @@ tokenizers = "0.22.2"
 cuda = ["candle-core/cuda"]
 accelerate = ["candle-core/accelerate"]
 mkl = ["candle-core/mkl"]
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
