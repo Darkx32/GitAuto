@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use color_eyre::eyre::{Context, Ok};
-use git2::{DiffOptions, Index, Repository};
+use git2::{DiffFormat, DiffOptions, Index, Repository};
 use owo_colors::OwoColorize;
 
 use crate::core::git::git_helper;
@@ -95,37 +95,64 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
 pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<Vec<String>> {
     let repo = Repository::open(".")?;
 
-    let filter = filter.unwrap_or([].into());
+    let filter: Vec<String> = filter.unwrap_or_default();
 
     let mut opts = DiffOptions::new();
     let diff = repo.diff_index_to_workdir(None, Some(&mut opts))?;
-    let mut all_data = Vec::<String>::new();
 
-    diff.print(git2::DiffFormat::Patch, |delta, _hunk, line| {
-        let contains = |path: Option<&std::path::Path>| {
+    let mut all_data = Vec::new();
+    let mut current_file: Option<String> = None;
+
+    diff.print(DiffFormat::Patch, |delta, _hunk, line| {
+        let matches_filter = |path: Option<&Path>| {
             if filter.is_empty() {
-                return true;
+                return false;
             }
 
-            path.map_or(false, |p| filter.iter().any(|f| f == p))
+            path.and_then(|p| p.to_str())
+                .map(|p| filter.iter().any(|f| f == p))
+                .unwrap_or(false)
         };
 
-        let old_file = delta.old_file().path();
-        let new_file = delta.new_file().path();
+        let old_path = delta.old_file().path();
+        let new_path = delta.new_file().path();
 
-        if !contains(delta.new_file().path()) &&
-        !contains(delta.old_file().path()) {
+        if !matches_filter(old_path) && !matches_filter(new_path) {
             return true;
         }
 
-        all_data.push(format!("file: {} -> {}", 
-            old_file.unwrap().to_str().unwrap_or("unknown"), 
-            new_file.unwrap().to_str().unwrap_or("unknown")));
+        let file_str = new_path
+            .or(old_path)
+            .and_then(|p| p.to_str())
+            .unwrap_or("unknown");
+
+        if current_file.as_deref() != Some(file_str) {
+            current_file = Some(file_str.to_string());
+
+            if let (Some(old), Some(new)) = (old_path, new_path) {
+                if old != new {
+                    all_data.push(format!(
+                        "file: {} -> {}",
+                        old.to_string_lossy(),
+                        new.to_string_lossy()
+                    ));
+                } else {
+                    all_data.push(format!("file: {}", file_str));
+                }
+            } else {
+                all_data.push(format!("file: {}", file_str));
+            }
+        }
 
         let origin = line.origin();
-        let content = str::from_utf8(line.content()).unwrap_or("");
+        let content = std::str::from_utf8(line.content()).unwrap_or("").trim_end();
 
-        all_data.push(format!("  {} {}", origin, content.trim()));
+        match origin {
+            '+' | '-' => {
+                all_data.push(format!("  {} {}", origin, content.trim_end()));
+            }
+            _ => {}
+        }
 
         true
     })?;

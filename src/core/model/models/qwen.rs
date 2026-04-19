@@ -47,7 +47,7 @@ pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String
         .unwrap_or(151645);
 
     let mut all_tokens = Vec::<u32>::new();
-    for index in  0..100 {
+    for index in  0..65 {
         let input = Tensor::new(&[next_token], &device)?.unsqueeze(0)?;
         let logits = model.forward(&input, tokens.len() + index)?;
         let logits = logits.squeeze(0)?;
@@ -67,7 +67,7 @@ pub fn run_qwen(model_path: String, prompt: String) -> color_eyre::Result<String
 
 fn get_prompt(prompt: String) -> String {
     format!("<|im_start|>system
-You are a commit message generator that MUST strictly follow the Conventional Commits specification.
+You are a commit message generator that MUST strictly follow the Conventional Commits specification using diff sent by user.
 
 OUTPUT FORMAT (STRICT):
 type(optional-scope): short description
@@ -75,11 +75,9 @@ type(optional-scope): short description
 RULES (MANDATORY):
 - Output ONLY one single line.
 - NO explanations, NO extra text, NO markdown.
-- MAX 72 characters total.
+- MAX 65 characters total.
 - Description MUST be in English.
-- Use imperative mood (e.g., 'add', 'fix', 'remove').
 - DO NOT end with a period.
-- DO NOT include file names unless necessary.
 
 ALLOWED TYPES:
 feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
@@ -88,19 +86,20 @@ SCOPE:
 - Optional, short, lowercase (e.g., parser, api, ui)
 
 SELECTION RULES:
-- feat → new feature
-- fix → bug fix
-- refactor → code change without behavior change
-- perf → performance improvement
-- style → formatting only
-- docs → documentation only
-- test → tests added/changed
-- build/ci → tooling or pipeline
-- chore → maintenance
+- feat for new feature
+- fix for bug fix
+- refactor for code change without behavior change
+- perf for performance improvement
+- style for formatting only
+- docs for documentation only
+- test for tests added/changed
+- build/ci for tooling or pipeline
+- chore for maintenance
 
 IF DIFF IS EMPTY:
 - Output: chore: no changes<|im_end|>
 <|im_start|>user
+diff:
 {}<|im_end|>
 <|im_start|>assistant", prompt.trim())
 }
