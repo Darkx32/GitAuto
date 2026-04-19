@@ -61,6 +61,11 @@ pub fn render() -> color_eyre::Result<()> {
         all_files_untracked
     };
 
+    if choosed_files.is_empty() {
+        println!("{}", "You have to select at least one to generate auto commit.".red());
+        return Ok(());
+    }
+
     match commit_method {
         CommitMethods::Custom => {
             let commit_type = Select::new("What's type of your commit?", commit_types_options)
