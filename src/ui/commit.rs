@@ -49,16 +49,16 @@ pub fn render() -> color_eyre::Result<()> {
         .with_default(true)
         .prompt().expect("Not enable to find any changes on files in this directory");
 
-    let choosed_files = if !add_all {
-        let all_files_untracked = git_controller::get_all_files_untracked()?;
 
+    let all_files_untracked = git_controller::get_all_files_untracked()?;
+    let choosed_files = if !add_all {
         let choosed_files = 
             MultiSelect::new("Choose files to auto track", all_files_untracked)
             .prompt()?;
 
         choosed_files
     } else {
-        [].into()
+        all_files_untracked
     };
 
     match commit_method {
