@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
@@ -38,8 +39,7 @@ pub fn download_model() -> color_eyre::Result<()> {
 pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     let (is_installed, model_path) = model_is_installed()?;
     if !is_installed {
-        println!("{}", "Model not found.".red());
-        return Ok("".into())
+        return Err(eyre!("{}", "Model not found.".red()))
     }
 
     let config = get_configuration()?;
