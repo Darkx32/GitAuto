@@ -75,6 +75,15 @@ pub fn delete_model(start: String, target: String) -> color_eyre::Result<()> {
     Ok(())
 }
 
+pub fn clear_model_folder() -> color_eyre::Result<()> {
+    let config = config::get_configuration()?;
+    
+    std::fs::remove_dir_all(&config.model_folder)?;
+    std::fs::create_dir(&config.model_folder)?;
+
+    Ok(())
+}
+
 pub fn model_is_installed() -> color_eyre::Result<(bool, String)> {
     let config = config::get_configuration()?;
     let path_buf = PathBuf::from(config.model_folder);
