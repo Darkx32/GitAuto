@@ -25,8 +25,7 @@ fn cli() -> Command {
                         .long("reset")
                         .short('r')
                         .action(ArgAction::SetTrue)
-                        .help("Reset to default configuration")
-                )
+                        .help("Reset to default configuration"))
         )
         .subcommand(
             Command::new("model")
@@ -36,8 +35,13 @@ fn cli() -> Command {
                         .short('i')
                         .long("install")
                         .action(ArgAction::SetTrue)
-                        .help("Install defined model on configuration")
-                )
+                        .help("Install defined model on configuration"))
+                .arg(
+                    Arg::new("clear")
+                        .short('c')
+                        .long("clear")
+                        .action(ArgAction::SetTrue)
+                        .help("Delete all models installed"))
         )
 }
 
@@ -60,6 +64,8 @@ pub fn cli_handle() -> color_eyre::Result<()> {
         Some(("model", sub)) => {
             if sub.get_flag("install") {
                 hub::download_model()
+            } else if sub.get_flag("clear") {
+                model::clear()
             } else {
                 model::render()
             }

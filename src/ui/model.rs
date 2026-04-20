@@ -1,4 +1,4 @@
-use crate::core::model::hub::{self, model_is_installed};
+use crate::core::model::hub::{self, clear_model_folder, model_is_installed};
 use inquire::Confirm;
 use owo_colors::OwoColorize;
 
@@ -16,6 +16,19 @@ pub fn render() -> color_eyre::Result<()> {
 
         if to_install {
             hub::download_model()?;
+        }
+    }
+
+    Ok(())
+}
+
+pub fn clear() -> color_eyre::Result<()> {
+    match clear_model_folder() {
+        Ok(()) => {
+            println!("{}", "All models installed has been deleted.".green());
+        },
+        Err(err) => {
+            println!("{} {}", "Error on clear models: ".red(), err.red());
         }
     }
 
