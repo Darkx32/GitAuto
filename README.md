@@ -15,6 +15,10 @@
 
 To compile the project, you will need the [Rust toolchain and Cargo package manager](https://doc.rust-lang.org/cargo) installed on your system.
 
+## 📥 Installing
+
+You can download and install on release section [here](https://github.com/Darkx32/GitAuto/tags)
+
 ### Building from Source
 
 Clone the repository and build the project in release mode:
