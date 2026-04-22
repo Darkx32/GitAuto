@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use color_eyre::eyre::{Context, Ok};
-use git2::{DiffFormat, DiffOptions, Index, Repository};
+use git2::{DiffFormat, DiffOptions, Index, Repository, build::CheckoutBuilder};
 use owo_colors::OwoColorize;
 
 use crate::core::git::git_helper;
@@ -68,6 +68,25 @@ pub fn add(files: Vec<String>) -> color_eyre::Result<()> {
     Ok(())
 }
 
+pub fn create_checkout(name: String) -> color_eyre::Result<()> {
+    let repo = Repository::open(".")?;
+    let head = repo.head()?;
+    let target_commit = head.peel_to_commit()?;
+
+    repo.branch(&name, &target_commit, false)?;
+
+    let ref_name = format!("refs/heads/{}", name);
+    repo.set_head(&ref_name)?;
+
+    let mut checkout_builder = CheckoutBuilder::new();
+    checkout_builder.safe();
+    repo.checkout_head(Some(&mut checkout_builder))?;
+
+    let msg = format!("Checkout para a branch '{}' realizado!", name);
+    println!("{}", msg.green());
+    Ok(())
+}
+
 pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
     let git_data = git_helper::GitData::global().lock().unwrap();
 
@@ -94,7 +113,6 @@ pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
 
 pub fn get_all_lines_changed(filter: Option<Vec<String>>) -> color_eyre::Result<Vec<String>> {
     let repo = Repository::open(".")?;
-
     let filter: Vec<String> = filter.unwrap_or_default();
 
     let mut opts = DiffOptions::new();
