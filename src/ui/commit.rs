@@ -45,6 +45,15 @@ pub fn render() -> color_eyre::Result<()> {
     let commit_method = Select::new("What's method to commit message?", commit_methods_options)
         .prompt()?;
 
+    let create_checkout = Confirm::new("Do you want create a new branch?")
+        .with_default(true)
+        .prompt()?;
+
+    let branch_name = if create_checkout {
+        Text::new("What's a branch name?")
+            .prompt()?
+    } else { String::new() };
+
     let add_all = Confirm::new("Add all files to commit?")
         .with_default(true)
         .prompt().expect("Not enable to find any changes on files in this directory");
@@ -66,32 +75,32 @@ pub fn render() -> color_eyre::Result<()> {
         return Ok(());
     }
 
+    let commit_msg: String;
     match commit_method {
         CommitMethods::Custom => {
             let commit_type = Select::new("What's type of your commit?", commit_types_options)
                 .prompt()?;
 
-            let commit_msg = Text::new("Commit message:")
+            let msg = Text::new("Commit message:")
                 .prompt()?;
-            
-            git_controller::add(choosed_files)?;
 
-            let msg = format!("{}: {}", commit_type, commit_msg);
-            let result = git_controller::commit(msg, add_all.into())?;
-            println!("{}", result.green())
+            commit_msg = format!("{}: {}", commit_type, msg);
         },
         CommitMethods::Generated => {
             let generated = hub::run(Some(choosed_files.clone()))?;
 
-            let commit_msg = Text::new("Commit message(generated):")
+            commit_msg = Text::new("Commit message(generated):")
                 .with_initial_value(&generated)
                 .prompt()?;
-
-            git_controller::add(choosed_files)?;
-            let result = git_controller::commit(commit_msg, add_all.into())?;
-            println!("{}", result.green())
         }
     }
+
+    if !branch_name.is_empty() {
+        git_controller::create_checkout(branch_name)?;
+    }
+    git_controller::add(choosed_files)?;
+    let result = git_controller::commit(commit_msg, add_all.into())?;
+    println!("{}", result.green());
 
     Ok(())
 }
