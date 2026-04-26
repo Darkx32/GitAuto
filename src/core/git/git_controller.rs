@@ -87,6 +87,30 @@ pub fn create_checkout(name: String) -> color_eyre::Result<()> {
     Ok(())
 }
 
+pub fn amend_last_commit(new_msg: String) -> color_eyre::Result<()> {
+    let repo = Repository::open(".")?;
+    let head = repo.head()?;
+    let head_commit = head.peel_to_commit()?;
+
+    let mut index = repo.index()?;
+    index.write_tree()?;
+    let tree_oid =index.write_tree()?;
+    let tree = repo.find_tree(tree_oid)?;
+
+    let sig = repo.signature()?;
+
+    head_commit.amend(
+        Some("HEAD"), 
+        None, 
+        Some(&sig), 
+        None, 
+        Some(&new_msg), 
+        Some(&tree)
+    )?;
+    
+    Ok(())
+}
+
 pub fn get_all_files_untracked() -> color_eyre::Result<Vec<String>> {
     let git_data = git_helper::GitData::global().lock().unwrap();
 
