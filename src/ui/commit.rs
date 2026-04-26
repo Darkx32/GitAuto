@@ -3,7 +3,7 @@ use core::fmt;
 use inquire::{Confirm, MultiSelect, Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::{git::{git_check, git_controller}, model::hub};
+use crate::core::{git::{git_check, git_controller, git_see}, model::hub};
 
 enum CommitMethods {
     Custom,
@@ -51,6 +51,7 @@ pub fn render() -> color_eyre::Result<()> {
 
     let branch_name = if create_checkout {
         Text::new("What's a branch name?")
+            .with_help_message(git_see::get_actual_branch()?.as_str())
             .prompt()?
     } else { String::new() };
 
@@ -101,6 +102,23 @@ pub fn render() -> color_eyre::Result<()> {
     git_controller::add(choosed_files)?;
     let result = git_controller::commit(commit_msg, add_all.into())?;
     println!("{}", result.green());
+
+    Ok(())
+}
+
+pub fn render_amend() -> color_eyre::Result<()> {
+    let new_msg = Text::new("Type you new message commit:")
+        .with_help_message(format!("Your old commit is '{}'", git_see::get_last_commit()?).as_str())
+        .prompt()?;
+
+    match git_controller::amend_last_commit(new_msg) {
+        Ok(_) => {
+            println!("{}", "New commit msg has been amend.".green())
+        }, 
+        Err(_) => {
+            println!("{}", "Error to amend new msg!".red())
+        }
+    }
 
     Ok(())
 }

@@ -10,6 +10,13 @@ fn cli() -> Command {
         .subcommand(
             Command::new("commit")
                 .about("Commits a code")
+                .arg(
+                    Arg::new("amend")
+                        .long("amend")
+                        .short('a')
+                        .action(ArgAction::SetTrue)
+                        .help("Create commit amend")
+                )
         )
         .subcommand(
             Command::new("config")
@@ -49,8 +56,12 @@ pub fn cli_handle() -> color_eyre::Result<()> {
     let matches = cli().get_matches();
 
     match matches.subcommand() {
-        Some(("commit", _)) => {
-            commit::render()
+        Some(("commit", sub)) => {
+            if sub.get_flag("amend") {
+                commit::render_amend()
+            } else {
+                commit::render()
+            }
         },
         Some(("config", sub)) => {
             if sub.get_flag("see") {
