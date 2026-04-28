@@ -4,11 +4,18 @@ mod arg;
 mod ui;
 mod core;
 
+use color_eyre::config::HookBuilder;
 use owo_colors::OwoColorize;
 
 fn main() {
-    #[cfg(debug_assertions)]
-    color_eyre::install().unwrap();
+    let builder = HookBuilder::default();
+
+    #[cfg(not(debug_assertions))]
+    let builder = builder
+        .display_location_section(false)
+        .display_env_section(false);
+
+    builder.install().unwrap();
 
     if let Err(err) = run() {
         #[cfg(debug_assertions)]
@@ -19,7 +26,6 @@ fn main() {
 
         std::process::exit(1);
     }
-    
 }
 
 fn run() -> color_eyre::Result<()> {
