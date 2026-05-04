@@ -3,7 +3,7 @@ use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
-use crate::core::{config::{self, get_configuration}, git::git_controller::get_all_lines_changed, model::{helper::{create_folder_it_not_exists, get_model_data}, models}};
+use crate::core::{config::{self, get_configuration}, git::git_controller, model::{helper::{create_folder_it_not_exists, get_model_data}, models::{base::ModelBase, qwen::QwenModel}}};
 
 pub fn download_model() -> color_eyre::Result<()> {
     let config = config::get_configuration()?;
@@ -43,13 +43,16 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     }
 
     let config = get_configuration()?;
-    let diff = get_all_lines_changed(filter)?;
+    let diff = git_controller::get_all_lines_changed(filter)?;
 
     let prompt = diff.join("\n");
 
+    let model: Box<dyn ModelBase>;
+
     let output = match config.model_name.as_str() {
         "bartowski/Qwen2.5-0.5B-Instruct-GGUF" => {
-            models::qwen::run_qwen(model_path, prompt)?
+            model = Box::new(QwenModel);
+            model.run(model_path, prompt)?
         },
         _ => unreachable!()
     };
