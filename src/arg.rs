@@ -20,7 +20,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("config")
-                .about("To change configuration")
+                .about("Change configuration")
                 .arg(
                     Arg::new("see")
                         .long("see")
@@ -36,7 +36,7 @@ fn cli() -> Command {
         )
         .subcommand(
             Command::new("model")
-                .about("See actual model installed")
+                .about("See models installed")
                 .arg(
                     Arg::new("install")
                         .short('i')
