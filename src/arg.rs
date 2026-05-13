@@ -1,86 +1,67 @@
-use clap::{Arg, ArgAction, Command};
+use clap::{Parser, Subcommand};
 
 use crate::{core::model::hub, ui::{commit, config, model}};
 
-fn cli() -> Command {
-    Command::new("GitAuto")
-        .about("IA implementation on git commit")
-        .subcommand_required(true)
-        .arg_required_else_help(true)
-        .subcommand(
-            Command::new("commit")
-                .about("Commits a code")
-                .arg(
-                    Arg::new("amend")
-                        .long("amend")
-                        .short('a')
-                        .action(ArgAction::SetTrue)
-                        .help("Create commit amend")
-                )
-        )
-        .subcommand(
-            Command::new("config")
-                .about("Change configuration")
-                .arg(
-                    Arg::new("see")
-                        .long("see")
-                        .short('s')
-                        .action(ArgAction::SetTrue)
-                        .help("See actual configuration"))
-                .arg(
-                    Arg::new("reset")
-                        .long("reset")
-                        .short('r')
-                        .action(ArgAction::SetTrue)
-                        .help("Reset to default configuration"))
-        )
-        .subcommand(
-            Command::new("model")
-                .about("See models installed")
-                .arg(
-                    Arg::new("install")
-                        .short('i')
-                        .long("install")
-                        .action(ArgAction::SetTrue)
-                        .help("Install defined model on configuration"))
-                .arg(
-                    Arg::new("clear")
-                        .short('c')
-                        .long("clear")
-                        .action(ArgAction::SetTrue)
-                        .help("Delete all models installed"))
-        )
+#[derive(Parser)]
+#[command(name = "GitAuto")]
+#[command(version, about = "IA implementation on git commit")]
+#[command(propagate_version = true)]
+#[command(arg_required_else_help = true)]
+struct Cli {
+    #[command(subcommand)]
+    commands: Commands
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Commit { 
+        #[arg(short, long)]
+        amend: bool
+    },
+    Config {
+        #[arg(short, long)]
+        see: bool,
+
+        #[arg(short, long)]
+        reset: bool
+    },
+    Model {
+        #[arg(short, long)]
+        install: bool,
+
+        #[arg(short, long)]
+        clear: bool,
+    }
 }
 
 pub fn cli_handle() -> color_eyre::Result<()> {
-    let matches = cli().get_matches();
+    let cli = Cli::parse();
 
-    match matches.subcommand() {
-        Some(("commit", sub)) => {
-            if sub.get_flag("amend") {
+    match cli.commands {
+        Commands::Commit { amend } => {
+            if amend {
                 commit::render_amend()
             } else {
                 commit::render()
             }
         },
-        Some(("config", sub)) => {
-            if sub.get_flag("see") {
+        Commands::Config { see, reset } => {
+            if see {
                 config::see()
-            } else if sub.get_flag("reset") {
+            } else if reset {
                 config::reset()
             } else {
                 config::render()
             }
         },
-        Some(("model", sub)) => {
-            if sub.get_flag("install") {
+        Commands::Model { install, clear } => {
+            if install {
                 hub::download_model()
-            } else if sub.get_flag("clear") {
+            } else if clear {
                 model::clear()
             } else {
                 model::render()
             }
-        },
-        _ => unreachable!()
+        }
     }
 }
