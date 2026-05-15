@@ -3,7 +3,7 @@ use std::{fs, path::PathBuf};
 use candle_core::Device;
 use owo_colors::OwoColorize;
 
-use crate::core::model::models::{base::ModelBase, qwen::QwenModel};
+use crate::core::model::models::{base::ModelBase, qwen::QwenModel, tiny::TinyLlamaModel};
 
 pub(super) fn create_folder_it_not_exists(folder: &PathBuf) -> color_eyre::Result<()> {
     if !folder.is_dir() {
@@ -33,6 +33,9 @@ pub(super) fn get_model_data(model: String) -> (String, String){
         "bartowski/Qwen2.5-0.5B-Instruct-GGUF" => {
             (QwenModel::get_gguf_name(), QwenModel::get_original_name())
         },
+        "s3nh/Tensoic-TinyLlama-1.1B-3T-openhermes-GGUF" => {
+            (TinyLlamaModel::get_gguf_name(), TinyLlamaModel::get_original_name())
+        }
         _ => unreachable!()
     }
 } 
