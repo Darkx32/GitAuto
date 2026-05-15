@@ -3,7 +3,7 @@ use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
-use crate::core::{config::{self, get_configuration}, git::git_controller, model::{helper::{create_folder_it_not_exists, get_model_data}, models::{base::ModelBase, qwen::QwenModel, tiny::TinyLlamaModel}}};
+use crate::core::{config::{self, get_configuration}, git::git_controller, model::{helper::{create_folder_it_not_exists, get_model_data}, models::{base::{ModelBase, Models}, qwen::QwenModel, tiny::TinyLlamaModel}}};
 
 pub fn download_model() -> color_eyre::Result<()> {
     let config = config::get_configuration()?;
@@ -18,7 +18,8 @@ pub fn download_model() -> color_eyre::Result<()> {
 
     println!("Downloading model: {}", config.model_name.bold());
 
-    let (tensor, model_name) = get_model_data(config.model_name);
+    let parsed_model: Models = config.model_name.parse().unwrap();
+    let (tensor, model_name) = get_model_data(parsed_model);
     let filepath = model.get(&tensor)
         .expect("Error to find tensor model");
 
@@ -49,16 +50,16 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
 
     let model: Box<dyn ModelBase>;
 
-    let output = match config.model_name.as_str() {
-        "bartowski/Qwen2.5-0.5B-Instruct-GGUF" => {
+    let parsed_model: Models = config.model_name.parse().unwrap();
+    let output = match parsed_model {
+        Models::Qwen => {
             model = Box::new(QwenModel);
             model.run(model_path, prompt)?
         },
-        "s3nh/Tensoic-TinyLlama-1.1B-3T-openhermes-GGUF" => {
+        Models::TinyLlama => {
             model = Box::new(TinyLlamaModel);
             model.run(model_path, prompt)?
-        },
-        _ => unreachable!()
+        }
     };
 
     Ok(output)
@@ -98,7 +99,8 @@ pub fn model_is_installed() -> color_eyre::Result<(bool, String)> {
     let cache = Cache::new(path_buf);
     let repo = Repo::model(config.model_name.clone());
 
-    let (model_tensor, _) = get_model_data(config.model_name);
+    let parsed_model: Models = config.model_name.parse().unwrap();
+    let (model_tensor, _) = get_model_data(parsed_model);
 
     if let Some(path) = cache.repo(repo).get(&model_tensor) {
         return Ok((true, path.display().to_string()))
