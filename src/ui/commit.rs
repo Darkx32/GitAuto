@@ -21,9 +21,6 @@ enum CommitTypes {
 }
 
 pub fn render() -> color_eyre::Result<()> {
-    // if !git_check::check_if_directory_is_repo() {
-    //     println!("{}", "Actual directory is not a repository.".bold().red());
-    // }
     if !git_check::check_if_repo_has_changes()? {
         println!("{}", "Actual directory don't have any change files".bold().red());
     }
