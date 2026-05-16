@@ -36,35 +36,43 @@ impl ModelBase for QwenModel {
             .expect("Error to generate tokens");
         let tokens = tokens.get_ids();
 
-        let mut logits_processor = LogitsProcessor::new(42, Some(0.15), None);
+        let mut logits_processor = LogitsProcessor::new(42, Some(0.0), Some(0.9));
 
-        let mut next_token = {
-            let input = Tensor::new(tokens, &device)?.unsqueeze(0)?;
-            let logits = model.forward(&input, 0)?;
-            let logits = logits.squeeze(0)?;
-            logits_processor.sample(&logits)?
-        };
+        let eos_tokens = vec![
+            tokenizer.token_to_id("<|im_end|>"),
+            tokenizer.token_to_id("<|endoftext|>"),
+            tokenizer.token_to_id("</s>")
+        ].into_iter().flatten().collect::<Vec<_>>();
 
-        let fallback_token = tokenizer
-            .token_to_id("<|im_end|>")
-            .unwrap_or(151645);
+        let input = Tensor::new(tokens, &device)?.unsqueeze(0)?;
+        
+        let logits = model.forward(&input, 0)?;
+        let logits = logits.squeeze(0)?;
+
+        let mut next_token = logits_processor.sample(&logits)?;
 
         let mut all_tokens = Vec::<u32>::new();
-        for index in  0..65 {
-            let input = Tensor::new(&[next_token], &device)?.unsqueeze(0)?;
-            let logits = model.forward(&input, tokens.len() + index)?;
-            let logits = logits.squeeze(0)?;
-
-            next_token = logits_processor.sample(&logits)?;
-            if next_token == fallback_token {
+        for index in 0..32 {
+            if eos_tokens.contains(&next_token) {
                 break;
             }
+
             all_tokens.push(next_token);
+
+            let input = Tensor::new(&[next_token], &device)?.unsqueeze(0)?;
+            let logits = model.forward(&input, tokens.len() + index)?.squeeze(0)?;
+            let logits = candle_transformers::utils::apply_repeat_penalty(&logits, 1.1, &all_tokens)?;
+
+            next_token = logits_processor.sample(&logits)?;
         }
 
         let output = tokenizer.decode(&all_tokens, false)
             .expect("Error to decode");
 
         Ok(output)
+    }
+
+    fn prepare_prompt(&self, prompt: String) -> String {
+        format!(include_str!("../../../../prompts/qwen.txt"), prompt)
     }
 }

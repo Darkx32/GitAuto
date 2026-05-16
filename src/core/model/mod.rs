@@ -1,3 +1,3 @@
 pub mod hub;
-pub(super) mod models;
+pub mod models;
 mod helper;

@@ -3,7 +3,7 @@ use std::path::Path;
 use inquire::{Confirm, Select, Text};
 use owo_colors::OwoColorize;
 
-use crate::core::{config, model::hub::{delete_model, download_model, model_is_installed}};
+use crate::core::{config, model::{hub::{delete_model, download_model, model_is_installed}, models::base::Models}};
 
 pub fn render() -> color_eyre::Result<()> {
     let option = Select::new("Select option to change:", 
@@ -12,8 +12,11 @@ pub fn render() -> color_eyre::Result<()> {
 
     match option {
         "Model" => {
-            let option = Select::new("What model do you want use?", 
-            ["bartowski/Qwen2.5-0.5B-Instruct-GGUF", "s3nh/Tensoic-TinyLlama-1.1B-3T-openhermes-GGUF"].to_vec())
+            let model_options = vec![
+                Models::Qwen
+            ];
+
+            let option = Select::new("What model do you want use?", model_options)
                 .prompt()?;
 
             let (older_is_installed, older_path) = model_is_installed()?;
@@ -29,7 +32,7 @@ pub fn render() -> color_eyre::Result<()> {
                 }
             }
 
-            config::set_model(&String::from(option))?;
+            config::set_model(&option.to_string())?;
             let (actual_is_installed, _) = model_is_installed()?;
             if !actual_is_installed {
                 let confirmation = Confirm::new("Download new model?")
