@@ -3,7 +3,7 @@ use color_eyre::eyre::eyre;
 use owo_colors::OwoColorize;
 use hf_hub::{Cache, Repo, api::sync::ApiBuilder};
 
-use crate::core::{config::{self, get_configuration}, git::git_controller, model::{helper::{create_folder_it_not_exists, get_model_data}, models::{base::{ModelBase, Models}, qwen::QwenModel, tiny::TinyLlamaModel}}};
+use crate::core::{config::{self, get_configuration}, git::git_controller, model::{helper::{create_folder_it_not_exists, get_model_data}, models::{base::{ModelBase, Models}, qwen::QwenModel}}};
 
 pub fn download_model() -> color_eyre::Result<()> {
     let config = config::get_configuration()?;
@@ -54,10 +54,6 @@ pub fn run(filter: Option<Vec<String>>) -> color_eyre::Result<String> {
     let output = match parsed_model {
         Models::Qwen => {
             model = Box::new(QwenModel);
-            model.run(model_path, prompt)?
-        },
-        Models::TinyLlama => {
-            model = Box::new(TinyLlamaModel);
             model.run(model_path, prompt)?
         }
     };

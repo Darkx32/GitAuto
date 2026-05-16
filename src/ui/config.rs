@@ -13,8 +13,7 @@ pub fn render() -> color_eyre::Result<()> {
     match option {
         "Model" => {
             let model_options = vec![
-                Models::Qwen,
-                Models::TinyLlama
+                Models::Qwen
             ];
 
             let option = Select::new("What model do you want use?", model_options)
